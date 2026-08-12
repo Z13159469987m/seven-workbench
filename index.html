@@ -1003,46 +1003,62 @@ function initHighlight(){
   tb.id='hlToolbar';
   tb.innerHTML='<button id="hlAdd">🖍 高亮</button><button class="hl-x" id="hlCancel">✕</button>';
   document.body.appendChild(tb);
-  let hlState=null;
+  let hlState=null;       // {text,id} 选中后保存，点击按钮时即使选区被清也能高亮
+  let applying=false;     // 正在执行高亮/取消，跳过 selectionchange 的误隐藏
   function hideHl(){ tb.style.display='none'; }
   window._hlHideToolbar=hideHl;
   function showHl(text,id,rect){
     hlState={text,id};
-    tb.style.left=(rect.left+rect.width/2)+'px';
-    tb.style.top=(rect.bottom+8)+'px';
+    let left=rect.left+rect.width/2;
+    let top=rect.bottom+8;
+    left=Math.max(70,Math.min(left,window.innerWidth-70));   // 防溢出屏幕两侧
+    if(top>window.innerHeight-60) top=rect.top-46;            // 太靠底就翻到上方
+    tb.style.left=left+'px';
+    tb.style.top=top+'px';
     tb.style.display='flex';
   }
-  function onSelectEnd(){
+  // 根据当前选区决定工具条显隐（桌面/移动端统一入口）
+  function evalSelection(){
+    if(applying) return;
     const sel=window.getSelection();
-    if(!sel||sel.isCollapsed||!sel.toString().trim()){ hideHl(); return; }
+    if(!sel||sel.isCollapsed||!sel.toString().trim()){ if(tb.style.display!=='none') hideHl(); return; }
     let range=null; try{ range=sel.getRangeAt(0); }catch(e){ hideHl(); return; }
     const node=range.commonAncestorContainer;
     const el=node&&node.nodeType===3?node.parentElement:node;
     const target=el&&el.closest?el.closest('.hl-target'):null;
     const itemEl=target&&target.closest('.item');
-    if(!itemEl){ hideHl(); return; }
+    if(!itemEl){ if(tb.style.display!=='none') hideHl(); return; }
     const text=sel.toString().trim();
     if(!text){ hideHl(); return; }
     showHl(text,itemEl.dataset.id,range.getBoundingClientRect());
   }
-  document.addEventListener('mouseup',onSelectEnd);
-  document.addEventListener('touchend',()=>setTimeout(onSelectEnd,10));
+  // 主触发：selectionchange 在桌面和移动端（含长按选择）都可靠触发，用防抖稳定
+  let deb=null;
+  document.addEventListener('selectionchange',()=>{ clearTimeout(deb); deb=setTimeout(evalSelection,60); });
   document.addEventListener('scroll',hideHl,true);
-  // 点击工具条之外才收起；不监听 selectionchange，避免点击按钮前工具条被关掉
+  // 点击/触工具条之外才收起
   document.addEventListener('mousedown',(e)=>{ if(tb.style.display!=='none'&&!tb.contains(e.target)) hideHl(); });
-  tb.querySelector('#hlCancel').onclick=hideHl;
-  tb.querySelector('#hlAdd').onclick=()=>{
-    if(hlState){
-      const {text,id}=hlState;
-      marks[id]=marks[id]||{};
-      marks[id].highlights=marks[id].highlights||[];
-      if(text&&!marks[id].highlights.includes(text)) marks[id].highlights.push(text);
-      store.set('wb_marks',marks);
-      try{ window.getSelection().removeAllRanges(); }catch(e){}
-      hideHl();
-      renderNews();
-    }
-  };
+  document.addEventListener('touchstart',(e)=>{ if(tb.style.display!=='none'&&!tb.contains(e.target)) hideHl(); },{passive:true});
+  function doAdd(){
+    if(!hlState) return;
+    applying=true;
+    const {text,id}=hlState;
+    marks[id]=marks[id]||{};
+    marks[id].highlights=marks[id].highlights||[];
+    if(text&&!marks[id].highlights.includes(text)) marks[id].highlights.push(text);
+    store.set('wb_marks',marks);
+    try{ window.getSelection().removeAllRanges(); }catch(e){}
+    applying=false; hideHl(); renderNews();
+  }
+  function doCancel(){ applying=true; hideHl(); applying=false; hlState=null; }
+  // 按钮：桌面用 click；移动端用 touchend+preventDefault（阻止浏览器清选区/吞 click），双触发去重
+  function bindBtn(btn,handler){
+    let last=0;
+    btn.addEventListener('click',(e)=>{ e.preventDefault(); handler(); });
+    btn.addEventListener('touchend',(e)=>{ e.preventDefault(); const now=Date.now(); if(now-last<500) return; last=now; handler(); });
+  }
+  bindBtn(tb.querySelector('#hlAdd'),doAdd);
+  bindBtn(tb.querySelector('#hlCancel'),doCancel);
   // 点击已高亮处 → 取消该句高亮
   const view=$('#view');
   view.addEventListener('click',(e)=>{
