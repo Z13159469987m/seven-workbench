@@ -223,6 +223,15 @@ select:focus,input:focus,textarea:focus{border-color:var(--pink)}
 .grove-item:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
 .grove-item .wk{font-size:12px;color:var(--ink2);margin-top:5px}
 .grove-item .cnt{font-size:11px;color:#1f9d6b;font-weight:700}
+.nursery{margin-top:14px}
+.nursery-title{font-size:13px;font-weight:800;color:var(--pink-deep);margin:12px 0 6px;padding-left:4px}
+.nursery-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+.nursery-bed{position:relative;margin:0 auto;border-radius:18px;background:linear-gradient(180deg,#eafaf0,#cdeedb);border:1px solid #bfe3cf;box-shadow:inset 0 2px 10px rgba(80,160,110,.15)}
+.nursery-bed.past{background:linear-gradient(180deg,#f3eefa,#e3d8f3);border-color:#e0d2f0}
+.flower-item{position:absolute;transform:translate(-50%,-50%);cursor:pointer;transition:transform .15s}
+.flower-item:hover{transform:translate(-50%,-50%) scale(1.18)}
+.flower-item.cur{filter:drop-shadow(0 0 5px #ff8fb3)}
+.cur-tag{position:absolute;left:50%;top:-11px;transform:translateX(-50%);font-size:9px;background:#ff6fae;color:#fff;padding:1px 5px;border-radius:8px;white-space:nowrap}
 .back-link{display:inline-block;margin-bottom:12px;font-size:13px;color:var(--pink-deep);cursor:pointer;background:none;border:none;font-weight:700;font-family:var(--font)}
 
 /* 周计划卡片 */
@@ -1188,6 +1197,35 @@ function treeSVG(n,size){
     <circle cx="${w/2+crownR*0.7}" cy="${gy-trunkH-crownR*0.25}" r="${crownR*0.72}" fill="#62c79a"/>`:''}
     ${f}</svg>`;
 }
+function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0);}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+const FLOWER_COLORS=['#ff8fb3','#ff6fae','#ff9ec4','#e88fd0','#ffb3c8','#ff7eb6','#ffd27f','#c9a0ff'];
+function flowerColor(key){return FLOWER_COLORS[hashStr(key)%FLOWER_COLORS.length];}
+function flowerStage(n){if(n<=0)return{open:0,label:'种子入土',emoji:'🌰'};if(n<=2)return{open:0.28,label:'花苞初绽',emoji:'🌱'};if(n<=4)return{open:0.55,label:'半开',emoji:'🌸'};if(n<=6)return{open:0.82,label:'将开',emoji:'🌺'};return{open:1,label:'满开',emoji:'🌺'};}
+function svgWrap(w,h,inner){return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">'+inner+'</svg>';}
+function flowerSVG(n,size,key){
+  const col=flowerColor(key||'x'),st=flowerStage(n),open=st.open,w=size,h=size,cx=w/2,gy=h-5;
+  let s='<ellipse cx="'+cx+'" cy="'+(gy+2)+'" rx="'+(w*0.32)+'" ry="4" fill="#cdeccd"/>';
+  if(n<=0){s+='<ellipse cx="'+cx+'" cy="'+(gy-2)+'" rx="4" ry="3" fill="#8a6842"/>';return svgWrap(w,h,s);}
+  const stemH=6+open*(h*0.5);
+  s+='<rect x="'+(cx-1.5)+'" y="'+(gy-stemH)+'" width="3" height="'+stemH+'" rx="1.5" fill="#5fb878"/>';
+  const ly=gy-stemH*0.45;
+  s+='<ellipse cx="'+(cx-7)+'" cy="'+ly+'" rx="6" ry="3" fill="#7fd6a0" transform="rotate(-30 '+(cx-7)+' '+ly+')"/>';
+  s+='<ellipse cx="'+(cx+7)+'" cy="'+ly+4+'" rx="6" ry="3" fill="#62c79a" transform="rotate(30 '+(cx+7)+' '+(ly+4)+')"/>';
+  const by=gy-stemH,pr=3+open*7,spread=2+open*6;
+  for(let p=0;p<5;p++){const a=-Math.PI/2+p*(2*Math.PI/5),px=cx+Math.cos(a)*spread,py=by+Math.sin(a)*spread,deg=(a*180/Math.PI+90);
+    s+='<ellipse cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" rx="'+(pr*0.7).toFixed(1)+'" ry="'+pr.toFixed(1)+'" fill="'+col+'" opacity="0.92" transform="rotate('+deg.toFixed(1)+' '+px.toFixed(1)+' '+py.toFixed(1)+')"/>';}
+  s+='<circle cx="'+cx+'" cy="'+by+'" r="'+(2+open*3).toFixed(1)+'" fill="#fff3b0"/>';
+  return svgWrap(w,h,s);
+}
+function flowerPositions(yearKey,count,W,H,m,minDist){
+  const rnd=mulberry32(hashStr('bed'+yearKey));const pts=[];
+  for(let i=0;i<count;i++){let best=null,bestD=-1;
+    for(let t=0;t<80;t++){const x=m+rnd()*(W-2*m),y=m+rnd()*(H-2*m);let d=1e9;for(const p of pts){const dx=x-p.x,dy=y-p.y;d=Math.min(d,dx*dx+dy*dy);}
+      if(d>=minDist*minDist){best={x:x,y:y};break;}if(d>bestD){bestD=d;best={x:x,y:y};}}
+    pts.push(best);}
+  return pts;
+}
 let rockTab='plan';   /* plan / flow / logs / grove */
 let viewWeek=null;    /* 用于查看历史周 */
 
@@ -1203,7 +1241,7 @@ function renderRock(){
     <div class="rock-tab ${rockTab==='plan'?'active':''}" onclick="setRockTab('plan')">🌱 本周打卡</div>
     <div class="rock-tab ${rockTab==='flow'?'active':''}" onclick="setRockTab('flow')">📅 工作流程</div>
     <div class="rock-tab ${rockTab==='logs'?'active':''}" onclick="setRockTab('logs')">📝 历史日志</div>
-    <div class="rock-tab ${rockTab==='grove'?'active':''}" onclick="setRockTab('grove')">🌲 树林回顾</div>
+    <div class="rock-tab ${rockTab==='grove'?'active':''}" onclick="setRockTab('grove')">🌷 我的苗圃</div>
   </div>`;
   view.innerHTML='<div class="daily-quote" id="dailyQuote"></div>'+tabs+'<div id="rockBody"></div>';
   renderDailyQuote();
@@ -1370,19 +1408,38 @@ function renderRockLogs(){
 function renderRockGrove(){
   const body=$('#rockBody');
   const curKey=iso(mondayOf(new Date()));
-  const keys=Object.keys(weeks).sort().reverse();
-  const cards=keys.map(k=>{const n=weekDoneCount(weeks[k]),st=stageOf(n);
-    const mon=new Date(k),sun=new Date(mon);sun.setDate(sun.getDate()+6);
-    return `<div class="grove-item" data-key="${k}">${treeSVG(n,100)}
-      <div class="wk">${iso(mon).slice(5)}~${iso(sun).slice(5)}${k===curKey?' · 本周':''}</div>
-      <div class="cnt">${st.e} ${st.name} · ${n}/7</div></div>`;}).join('');
-  body.innerHTML=`<div class="card"><h2 style="font-size:18px;font-weight:800">🌲 我的树林</h2>
-    <p style="font-size:13px;color:#9c7c8e;margin-top:4px">每棵树是一周的努力。点任意一周可回到打卡视图回看详情。</p>
-    <div class="grove">${cards||'<div class="empty" style="grid-column:1/-1">树林还空着，从本周第一个打钩开始种树吧 🌱</div>'}</div></div>`;
-  body.querySelectorAll('.grove-item').forEach(g=>g.onclick=()=>{
-    viewWeek=g.dataset.key===curKey?null:g.dataset.key;
-    rockTab='plan';
-    renderRock();
+  const keys=Object.keys(weeks).sort();
+  if(!keys.length){
+    body.innerHTML='<div class="card empty">苗圃还空着，从本周第一个打钩开始种下第一朵花吧 🌱</div>';
+    return;
+  }
+  const byYear={};
+  keys.forEach(k=>{const y=k.slice(0,4);(byYear[y]=byYear[y]||[]).push(k);});
+  const years=Object.keys(byYear).sort().reverse();
+  const curYear=curKey.slice(0,4);
+  let html='<div class="card"><h2 style="font-size:18px;font-weight:800">🌷 我的苗圃</h2>'+
+    '<p style="font-size:13px;color:#9c7c8e;margin-top:4px">每周种一朵花，随打卡慢慢绽放。点花朵可回看那一周 🌸</p>';
+  years.forEach(y=>{
+    const isCur=y===curYear, wkKeys=byYear[y];
+    const W=isCur?330:300,H=isCur?190:96,m=isCur?20:12,fsize=isCur?30:18,minDist=isCur?30:20;
+    const pts=flowerPositions(y,wkKeys.length,W,H,m,minDist);
+    let flowers='';
+    wkKeys.forEach((k,i)=>{
+      const n=weekDoneCount(weeks[k]),st=flowerStage(n);
+      const mon=new Date(k),sun=new Date(mon);sun.setDate(sun.getDate()+6);
+      const range=iso(mon).slice(5)+'~'+iso(sun).slice(5);
+      const isCurWk=k===curKey;
+      const x=Math.max(fsize/2,Math.min(W-fsize/2,pts[i].x));
+      const y2=Math.max(fsize/2,Math.min(H-fsize/2,pts[i].y));
+      flowers+='<div class="flower-item'+(isCurWk?' cur':'')+'" data-key="'+k+'" title="'+range+' · '+n+'/7 '+st.label+'" style="left:'+x.toFixed(1)+'px;top:'+y2.toFixed(1)+'px;width:'+fsize+'px;height:'+fsize+'px">'+flowerSVG(n,fsize,k)+(isCurWk?'<span class="cur-tag">本周</span>':'')+'</div>';
+    });
+    html+='<div class="nursery"><div class="nursery-title">'+(isCur?'🌷 ':'🌿 ')+y+' 年'+(isCur?' · 今年':'（往期）')+'（'+wkKeys.length+' 朵）</div>'+
+      '<div class="nursery-scroll"><div class="nursery-bed'+(isCur?'':' past')+'" style="width:'+W+'px;height:'+H+'px">'+flowers+'</div></div></div>';
+  });
+  html+='</div>';
+  body.innerHTML=html;
+  body.querySelectorAll('.flower-item').forEach(g=>g.onclick=()=>{
+    const k=g.dataset.key;viewWeek=k===curKey?null:k;rockTab='plan';renderRock();
   });
 }
 
