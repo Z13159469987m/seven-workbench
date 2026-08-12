@@ -214,10 +214,10 @@ select:focus,input:focus,textarea:focus{border-color:var(--pink)}
 .day-h .subtask-add input{border:none;background:transparent;font-size:11px;font-family:var(--font);color:var(--ink);flex:1;outline:none;min-width:0;width:100%}
 .day-h .subtask-add input::placeholder{color:var(--ink2);font-size:10.5px}
 
-.tree-card{border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg,#eafaf3 0%,#fff4fa 100%);padding:18px 14px;text-align:center;box-shadow:var(--shadow-s)}
-.tree-card h3{font-size:14px;margin-bottom:3px;font-weight:800;color:var(--ink)}
-.tree-card .stage-name{font-size:12px;color:#1f9d6b;font-weight:700;margin-top:6px}
-.tree-card .tree-wrap{display:flex;justify-content:center;margin:6px 0}
+.flower-card{border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg,#eafaf3 0%,#fff4fa 100%);padding:18px 14px;text-align:center;box-shadow:var(--shadow-s)}
+.flower-card h3{font-size:14px;margin-bottom:3px;font-weight:800;color:var(--ink)}
+.flower-card .stage-name{font-size:12px;color:#1f9d6b;font-weight:700;margin-top:6px}
+.flower-card .flower-wrap{display:flex;justify-content:center;margin:6px 0}
 .grove{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:14px}
 .grove-item{border:1px solid var(--line);border-radius:var(--radius-s);padding:12px;text-align:center;background:linear-gradient(180deg,#f3fbf7,#fff4fa);cursor:pointer;transition:.15s}
 .grove-item:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
@@ -406,7 +406,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--pink)}
   .day-h .check-mini{font-size:10.5px;padding:6px 8px}
   .day-h .subtask-item{font-size:10.5px}
   .rock-progress .pbar-inline{width:70px}
-  .tree-card{margin-top:12px;padding:14px 10px}
+  .flower-card{margin-top:12px;padding:14px 10px}
   .sakura-avatar{width:120px;height:120px}
   .page-mascot{width:88px;height:100px;top:50px;opacity:.4}
 }
@@ -431,7 +431,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--pink)}
       <p>WorkBuddy 陪你稳稳推进呀</p>
     </div>
     <button class="nav-item active" data-tab="news"><span class="ic">📖</span>魔法日报</button>
-    <button class="nav-item" data-tab="rock"><span class="ic">🌳</span>洛克炫彩屋</button>
+    <button class="nav-item" data-tab="rock"><span class="ic">🌷</span>洛克炫彩屋</button>
     <button class="nav-item" data-tab="lab"><span class="ic">🧪</span>实验田</button>
     <button class="nav-item" data-tab="fav"><span class="ic">🎀</span>收藏小屋</button>
     <button class="nav-item" data-tab="potion"><span class="ic">⚗️</span>进阶魔药</button>
@@ -1180,23 +1180,7 @@ const DAY_NAMES=['周一','周二','周三','周四','周五','周六','周日']
 function mondayOf(d){const x=new Date(d);const wd=(x.getDay()+6)%7;x.setDate(x.getDate()-wd);x.setHours(0,0,0,0);return x;}
 function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function weekDoneCount(w){let n=0;for(let i=0;i<7;i++){const d=w['d'+i]||{};if(d.done)n++;}return n;}
-const STAGES=[{min:0,name:'种子入土',e:'🌰'},{min:2,name:'破土发芽',e:'🌱'},{min:5,name:'幼苗舒展',e:'🌿'},
-  {min:4,name:'小树挺立',e:'🪴'},{min:6,name:'枝繁叶茂',e:'🌳'},{min:7,name:'硕果累累',e:'🍎🌳'}];
-function stageOf(n){let s=STAGES[0];for(const st of STAGES)if(n>=st.min)s=st;return s;}
-function treeSVG(n,size){
-  const p=Math.min(n/7,1),trunkH=8+p*40,crownR=4+p*26,fruits=n>=7;
-  const w=size,h=size,gy=h-14;let f='';
-  if(fruits){const pos=[[-14,-8],[10,-16],[-2,4],[16,2],[-20,8]];
-    f=pos.map(([dx,dy])=>`<circle cx="${w/2+dx}" cy="${gy-trunkH-crownR*0.6+dy}" r="4.5" fill="#ff5d5d" stroke="#d63b3b"/>`).join('');}
-  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-    <ellipse cx="${w/2}" cy="${gy+6}" rx="${w*0.34}" ry="8" fill="#f2d9c2"/>
-    ${p<0.15?`<circle cx="${w/2}" cy="${gy}" r="5" fill="#8a6842"/>`:''}
-    ${p>=0.15?`<rect x="${w/2-3-p*3}" y="${gy-trunkH}" width="${6+p*6}" height="${trunkH}" rx="3" fill="#a9744a"/>`:''}
-    ${p>=0.15?`<circle cx="${w/2}" cy="${gy-trunkH-crownR*0.55}" r="${crownR}" fill="#7fd6a0"/>
-    <circle cx="${w/2-crownR*0.7}" cy="${gy-trunkH-crownR*0.25}" r="${crownR*0.72}" fill="#9be3c0"/>
-    <circle cx="${w/2+crownR*0.7}" cy="${gy-trunkH-crownR*0.25}" r="${crownR*0.72}" fill="#62c79a"/>`:''}
-    ${f}</svg>`;
-}
+/* 树木生长图已移除：周成长统一用 flowerSVG（花）表现，与「我的苗圃」一致 */
 function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0);}
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
 const FLOWER_COLORS=['#ff8fb3','#ff6fae','#ff9ec4','#e88fd0','#ffb3c8','#ff7eb6','#ffd27f','#c9a0ff'];
@@ -1261,7 +1245,7 @@ function renderRockPlan(){
   const wk=weeks[key]||{};
   const mon=new Date(key),sun=new Date(mon);sun.setDate(sun.getDate()+6);
   const todayIdx=(new Date().getDay()+6)%7;
-  const n=weekDoneCount(wk),st=stageOf(n);
+  const n=weekDoneCount(wk),st=flowerStage(n);
 
   const historyLink=readonly?`<button class="back-link" onclick="backToCurWeek()">← 返回本周</button>`:'';
 
@@ -1314,23 +1298,23 @@ function renderRockPlan(){
     </div>`;
   }).join('');
 
-  /* 树苗卡片 → 紧凑横条 */
-  const treeHtml=`<div class="tree-card" style="display:flex;align-items:center;gap:14px;padding:12px 16px;text-align:left;margin-top:0;border-radius:14px">
-    <div class="tree-wrap" style="margin:0;flex-shrink:0">${treeSVG(n,72)}</div>
+  /* 花朵卡片 → 紧凑横条 */
+  const flowerHtml=`<div class="flower-card" style="display:flex;align-items:center;gap:14px;padding:12px 16px;text-align:left;margin-top:0;border-radius:14px">
+    <div class="flower-wrap" style="margin:0;flex-shrink:0">${flowerSVG(n,72,key)}</div>
     <div style="flex:1;min-width:0">
-      <h3 style="margin:0;font-size:14px">${st.name}</h3>
-      <div class="stage-name" style="margin:3px 0 0">${st.e} ${n>=7?'🎉 本周圆满！':''}</div>
+      <h3 style="margin:0;font-size:14px">${st.label}</h3>
+      <div class="stage-name" style="margin:3px 0 0">${st.emoji} ${n>=7?'🎉 本周圆满！':''}</div>
     </div>
   </div>`;
 
   body.innerHTML=historyLink+planCard+`<div class="card">
     <div class="rock-top">
-      <div class="week-head"><h2>🌳 洛克炫彩屋${readonly?' · 历史周':''}</h2><span class="week-range">${iso(mon)} ~ ${iso(sun)}${readonly?'（只读）':''}</span></div>
-      <div class="rock-progress"><span>${n}/7</span><div class="pbar-inline"><div style="width:${n/7*100}%"></div></div><span class="progress-egg" title="${st.name}">${progressEggImg()}</span></div>
+      <div class="week-head"><h2>🌷 洛克炫彩屋${readonly?' · 历史周':''}</h2><span class="week-range">${iso(mon)} ~ ${iso(sun)}${readonly?'（只读）':''}</span></div>
+      <div class="rock-progress"><span>${n}/7</span><div class="pbar-inline"><div style="width:${n/7*100}%"></div></div><span class="progress-egg" title="${st.label}">${progressEggImg()}</span></div>
     </div>
     <div class="rock-layout">
       <div class="days-scroll">${dayCards}</div>
-      ${treeHtml}
+      ${flowerHtml}
     </div>
   </div>`;
 
